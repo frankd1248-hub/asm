@@ -1,5 +1,18 @@
 ; Text-based adventure game written in x86_64 NASM assembly
 
+; ABI CONVENTIONS SUMMARY
+; caller-saved registers:
+;    rax, rcx, rdx, rsi, rdi, r8, r9, r10, r11
+; callee-saved registers:
+;    rbx, rbp, r12, r13, r14, r15
+; argument-passing order (int/ptr)
+;    rdi -> rsi -> rdx -> rcx -> r8 -> r9
+; return values:
+;    rax
+; RSP % 16 == 8 before call instruction
+; RSP % 16 == 0 before syscall
+; Linux enters _start with RSP % 16 == 0
+
 BITS 64
 CPU X64
 
