@@ -26,6 +26,10 @@ section .text
         call inputwrapper           ; Get input
         cmp al, 27
         je .exit                    ; Exit program if ESC key pressed
+
+        mov dil, al
+        call putchar
+        
         jmp _start
 
         .exit:
