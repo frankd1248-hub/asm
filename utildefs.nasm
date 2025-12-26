@@ -28,6 +28,8 @@ section .bss
     orig_termios resb 64
 
 section .data
+    clear_seq db 27, "[2J", 27, "[H"
+    clear_len equ $ - clear_seq
 
     sigaction:                     ; Linux sigaction struct
         dq sigsegv_handler         ;
@@ -56,6 +58,14 @@ section .text
         mov rax, SYSEXIT           ; Prepare to call exit function
         mov rdi, 0                 ; Return value
         syscall                    ; Call
+
+    cls:
+        mov eax, 1          ; sys_write
+        mov edi, 1          ; stdout
+        lea rsi, [clear_seq]
+        mov edx, clear_len
+        syscall
+        ret
 
     ; puts one character onto the terminal.
     ; Parameters:

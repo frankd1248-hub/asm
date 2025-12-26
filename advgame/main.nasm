@@ -25,11 +25,20 @@ section .data
 
     err_nulinput: db "Error: NULL input.", 0
 
+    pmt_dirc: db "1 (North), 2 (East), 3 (West), 4 (South): ", 0
+    err_dirc: db "Invalid direction.", 0
+    msg_nort: db "You walk North.", 0
+    msg_east: db "You walk East.", 0
+    msg_west: db "You walk West.", 0
+    msg_sout: db "You walk South.", 0
+
     msg_0000: db "Welcome to the ASM Text Adventure Game!", 0
     pmt_0000: db "Choose difficulty: 1 (Easy), 2 (Hard) ", 0
     err_0000: db "Invalid input.", 0
     res_0000_1: db "You chose easy difficulty.", 0
     res_0000_2: db "You chose hard difficulty.", 0
+
+    msg_0001: db "You wake up in a dark basement. Which direction do you go?", 0
 
 section .text
     global _start
@@ -37,6 +46,8 @@ section .text
     _start:
         call init
         call pregame
+        call cls
+        call game_1
         call endl
         call restore_terminal
         jmp exit
@@ -85,3 +96,46 @@ section .text
         call putsln
         ret
 
+    game_1:
+        mov rdi, msg_0001
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+
+        .invalid:
+            mov rdi, err_dirc
+            call putsln
+            mov rax, 0
+            jmp game_1
+
+        .north:
+            mov rdi, msg_nort
+            call putsln
+            ret
+
+        .east:
+            mov rdi, msg_east
+            call putsln
+            ret
+
+        .west:
+            mov rdi, msg_west
+            call putsln
+            ret
+            
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            ret
+        
