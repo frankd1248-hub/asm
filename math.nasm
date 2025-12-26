@@ -45,28 +45,32 @@ section .text
         mov rax, rdx
         ret
 
+    ; Value from rax
     utoa:
-        push    rbx
+        push    rbx                ; preserve callee-saved register
+
         mov     rbx, 10
-        xor     rcx, rcx          ; digit count
+        xor     rcx, rcx           ; digit count
 
         .convert:
             xor     rdx, rdx
-            div     rbx           ; RAX /= 10, RDX = remainder
+            div     rbx                ; RAX /= 10, RDX = remainder
             add     dl, '0'
-            push    rdx
+            push    rdx                ; push digit
             inc     rcx
             test    rax, rax
             jnz     .convert
 
         .write:
-            mov     rax, rcx       ; return length
+            mov     rax, rcx           ; return length
+
         .write_loop:
             pop     rdx
             mov     [rdi], dl
             inc     rdi
             loop    .write_loop
 
-            mov     byte [rdi], 0
+            mov     byte [rdi], 0      ; null terminator
+
             pop     rbx
             ret
