@@ -3,25 +3,56 @@
 BITS 64
 CPU X64
 
+%define SYSREAD   0            ; System read call id
+%define SYSWRITE  1            ; System write call id
+%define SYSIOCTL 16            ; System I/O control call id
+%define SYSEXIT  60            ; System exit call id
+
+%define STDIN     0            ; Standard input stream id
+%define STDOUT    1            ; Standard output stream id
+
+%define TCGETS      0x5401     ; Terminal get
+%define TCSETS      0x5402     ; Terminal set
+
+%define ICANON      0x0002     ; Canonical/raw terminal flag
+%define ECHO        0x0008     ; Echo on/off flag
+
+%define SIGSEGV  11
+%define SA_RESTORER 0x04000000
+
+%define SYS_RT_SIGACTION 13
+
+%define RET_SIGSEGV 139
+
+section .bss
+    orig_termios resb 64
+
 section .data
     newline db 0xA                 ; Newline character
     lennl equ $-newline            ; Length of newline character (kind of pointless)
 
+    sigaction:
+        dq sigsegv_handler
+        dq SA_RESTORER
+        dq sigrestorer
+        times 16 dq 0
+
 section .text
 
-    %define SYSREAD   0            ; System read call id
-    %define SYSWRITE  1            ; System write call id
-    %define SYSIOCTL 16            ; System I/O control call id
-    %define SYSEXIT  60            ; System exit call id
+    init:
+        mov rax, SYSIOCTL          ; Initialize original terminal to ensure we don't recover to garbage.
+        mov rdi, STDIN
+        mov rsi, TCGETS
+        lea rdx, [orig_termios]
+        syscall
 
-    %define STDIN     0            ; Standard input stream id
-    %define STDOUT    1            ; Standard output stream id
-
-    %define TCGETS      0x5401     ; Terminal get
-    %define TCSETS      0x5402     ; Terminal set
-
-    %define ICANON      0x0002     ; Canonical/raw terminal flag
-    %define ECHO        0x0008     ; Echo on/off flag
+        mov rax, SYS_RT_SIGACTION  ; Install segmentation fault handler
+        mov rdi, SIGSEGV
+        lea rsi, [sigaction]
+        xor rdx, rdx
+        mov r10, 8
+        syscall
+        ret
 
     exit:
         mov rax, SYSEXIT           ; Prepare to call exit function
@@ -49,11 +80,8 @@ section .text
         ret
 
     endl:
-        mov rax, SYSWRITE          ; Prepare to call syswrite
-        mov rdi, STDOUT            ; Write to standard out
-        mov rsi, newline           ; Move newline character to arguments
-        mov rdx, lennl             ; Declare length of message
-        syscall                    ; Call syswrite
+        mov dil, 0xA
+        call putchar
         ret
 
     puts:
@@ -71,82 +99,193 @@ section .text
             jmp .loop              ; Loop again
 
         .done:
-            pop rbp                ; Release internally used register
+            pop rbx                ; Release internally used register
             ret
 
+    putsln:
+        call puts
+        call endl
+        ret
+
+    ; getchar:
+    ;     ; --- prologue (ABI) ---
+    ;     push rbp
+    ;     mov  rbp, rsp              ; Setup stack frame
+    ;     sub  rsp, 128              ; local storage, 16-byte aligned
+
+    ;     push r12
+    ;     push r13
+    ;     push r14
+
+    ;     ; Layout:
+    ;     ; rbp-128 .. rbp-69  : term_old (60 bytes)
+    ;     ; rbp-68  .. rbp-9   : term_new (60 bytes)
+    ;     ; rbp-1              : char buffer (1 byte)
+
+    ;     lea r12, [rbp-128]         ; term_old
+    ;     lea r13, [rbp-68]          ; term_new
+    ;     lea r14, [rbp-1]           ; char buffer
+
+    ;     ; --- ioctl(STDIN, TCGETS, term_old) ---
+    ;     mov rax, SYSIOCTL          ; Prepares call
+    ;     mov rdi, STDIN
+    ;     mov rsi, TCGETS
+    ;     mov rdx, r12
+    ;     lea rdx, [orig_termios]
+    ;     syscall                    ; Calls ioctl(0, TCGETS, &term_old)
+    ;     test rax, rax              ; ioctl returns negative value on error
+    ;     js .error
+
+    ;     ; --- copy term_old -> term_new ---
+    ;     mov rcx, 60
+    ;     mov rsi, r12
+    ;     mov rdi, r13
+    ;     rep movsb                  ; Essentially calls memcpy(term_new, term_old, 60)
+
+    ;     ; --- disable ICANON | ECHO ---
+    ;     mov eax, [r13 + 12]        ; Loads c_lflag
+    ;     and eax, ~(ICANON | ECHO)  ; Bytewise input, and not printed automatically
+    ;     mov [r13 + 12], eax        ; Write modified flags to term_new
+
+    ;     ; --- ioctl(STDIN, TCSETS, term_new) ---
+    ;     mov rax, SYSIOCTL
+    ;     mov rdi, STDIN
+    ;     mov rsi, TCSETS
+    ;     mov rdx, r13
+    ;     syscall                    ; Calls ioctl(0, TCSETS, term_new), switches terminal to raw mode
+
+    ;     ; --- read(STDIN, &ch, 1) ---
+    ;     mov rax, SYSREAD
+    ;     mov rdi, STDIN
+    ;     mov rsi, r14
+    ;     mov rdx, 1
+    ;     syscall                    ; Blocks and reads one byte when available
+    ;     cmp rax, 1                 ; Ensure only one byte was read
+    ;     jne .restore_error
+
+    ;     mov al, byte [r14]         ; save return char
+
+    ;     .restore:
+    ;         mov al, byte [r14]
+    ;         mov byte [rbp-2], al   ; save return value
+
+    ;         ; restore terminal
+    ;         mov rax, SYSIOCTL
+    ;         mov rdi, STDIN
+    ;         mov rsi, TCSETS
+    ;         mov rdx, r12
+    ;         syscall
+
+    ;         mov al, byte [rbp-2]   ; restore return value
+
+    ;     .cleanup:
+    ;         pop r12
+    ;         pop r13
+    ;         pop r14
+    ;         leave
+    ;         ret
+
+    ;     .restore_error:
+    ;         xor al, al             ; Ensures return value of 0 (NULL)
+    ;         jmp .restore           ; Restores terminal
+
+    ;     .error:
+    ;         xor al, al             ; Early error handling, before raw terminal.
+    ;         leave
+    ;         ret
+    
     getchar:
-        ; --- prologue (ABI) ---
         push rbp
-        mov  rbp, rsp              ; Setup stack frame
-        sub  rsp, 128              ; local storage, 16-byte aligned
+        mov  rbp, rsp
+        sub  rsp, 128
 
-        ; Layout:
-        ; rbp-128 .. rbp-69  : term_old (60 bytes)
-        ; rbp-68  .. rbp-9   : term_new (60 bytes)
-        ; rbp-1              : char buffer (1 byte)
+        push r12
+        push r13
+        push r14
 
-        lea r12, [rbp-128]         ; term_old
-        lea r13, [rbp-68]          ; term_new
-        lea r14, [rbp-1]           ; char buffer
+        lea r12, [orig_termios]   ; old
+        lea r13, [rbp-68]         ; new
+        lea r14, [rbp-1]          ; char
 
-        ; --- ioctl(STDIN, TCGETS, term_old) ---
-        mov rax, SYSIOCTL          ; Prepares call
+        ; ioctl TCGETS
+        mov rax, SYSIOCTL
         mov rdi, STDIN
         mov rsi, TCGETS
         mov rdx, r12
-        syscall                    ; Calls ioctl(0, TCGETS, &term_old)
-        test rax, rax              ; ioctl returns negative value on error
-        js .error
+        syscall
+        test rax, rax
+        js .fail
 
-        ; --- copy term_old -> term_new ---
+        ; copy old → new
         mov rcx, 60
         mov rsi, r12
         mov rdi, r13
-        rep movsb                  ; Essentially calls memcpy(term_new, term_old, 60)
+        rep movsb
 
-        ; --- disable ICANON | ECHO ---
-        mov eax, [r13 + 12]        ; Loads c_lflag
-        and eax, ~(ICANON | ECHO)  ; Bytewise input, and not printed automatically
-        mov [r13 + 12], eax        ; Write modified flags to term_new
+        ; disable ICANON | ECHO
+        mov eax, [r13 + 12]
+            and eax, ~(ICANON | ECHO)
+        mov [r13 + 12], eax
 
-        ; --- ioctl(STDIN, TCSETS, term_new) ---
+        ; ioctl TCSETS
         mov rax, SYSIOCTL
         mov rdi, STDIN
         mov rsi, TCSETS
         mov rdx, r13
-        syscall                    ; Calls ioctl(0, TCSETS, term_new), switches terminal to raw mode
+        syscall
 
-        ; --- read(STDIN, &ch, 1) ---
+        ; read char
         mov rax, SYSREAD
         mov rdi, STDIN
-        mov rsi, r14
+            mov rsi, r14
         mov rdx, 1
-        syscall                    ; Blocks and reads one byte when available
-        cmp rax, 1                 ; Ensure only one byte was read
-        jne .restore_error
-
-        mov al, byte [r14]         ; save return char
+        syscall
+        cmp rax, 1
+        jne .restore_fail
 
         .restore:
-            mov al, byte [r14]
-            mov byte [rbp-2], al   ; save return value
-
             ; restore terminal
             mov rax, SYSIOCTL
             mov rdi, STDIN
             mov rsi, TCSETS
             mov rdx, r12
-            syscall
 
-            mov al, byte [rbp-2]   ; restore return value
+            mov al, byte [r14]
+
+        .cleanup:
+            pop r14
+            pop r13
+            pop r12
             leave
             ret
 
-        .restore_error:
-            xor al, al             ; Ensures return value of 0 (NULL)
-            jmp .restore           ; Restores terminal
+        .restore_fail:
+            xor al, al
+            jmp .restore
 
-        .error:
-            xor al, al             ; Early error handling, before raw terminal.
-            leave
-            ret
+        .fail:
+            xor al, al
+            jmp .cleanup
+
+
+    restore_terminal:
+        mov rax, SYSIOCTL
+        mov rdi, STDIN
+        mov rsi, TCSETS
+        lea rdx, [orig_termios]
+        syscall
+
+    sigsegv_handler:
+        mov rax, SYSIOCTL
+        mov rdi, STDIN
+        mov rsi, TCSETS
+        lea rdx, [orig_termios]
+        syscall
+
+        mov rax, SYSEXIT
+        mov rdi, RET_SIGSEGV
+        syscall
+
+    sigrestorer:
+        mov rax, 15          ; rt_sigreturn
+        syscall
