@@ -15,6 +15,8 @@ section .data
     msg_0000: db "Welcome to the ASM Text Adventure Game!", 0
     pmt_0000: db "Choose difficulty: 1 (Easy), 2 (Hard) ", 0
     err_0000: db "Invalid input.", 0
+    res_0000_1: db "You chose easy difficulty.", 0
+    res_0000_2: db "You chose hard difficulty.", 0
 
 section .text
     global _start
@@ -29,36 +31,44 @@ section .text
     pregame:
         mov rdi, msg_0000
         call putsln
-        mov rdi, pmt_0000
 
         .getinput:
+        mov rdi, pmt_0000
         call puts
         call getchar
-        cmp al, 0
+        mov bl, al
+        call endl
+        cmp bl, 0
         je .nullinput
-        cmp al, 49
+        cmp bl, 49
         je .Easy
-        cmp al, 50
+        cmp bl, 50
         je .Hard
 
+        .invalid:
         mov rdi, err_0000
         call putsln
+        mov rax, 0
         jmp .getinput
 
+        .done:
         call endl
         jmp exit
 
         .nullinput:
         mov rdi, err_nulinput
         call putsln
-        call restore_terminal
-        jmp exit
+        jmp .getinput
 
         .Easy:
         mov byte [diff], 1
+        mov rdi, res_0000_1
+        call putsln
         ret
 
         .Hard:
         mov byte [diff], 2
+        mov rdi, res_0000_2
+        call putsln
         ret
 
