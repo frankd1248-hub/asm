@@ -45,11 +45,13 @@ section .text
 
     _start:
         call init
+        sub rsp, 8
         call pregame
         call cls
-        call game_1
+        call game_001
         call endl
         call restore_terminal
+        add rsp, 8
         jmp exit
 
     pregame:
@@ -96,7 +98,7 @@ section .text
         call putsln
         ret
 
-    game_1:
+    game_001:
         mov rdi, msg_0001
         call putsln
         mov rdi, pmt_dirc
@@ -117,7 +119,7 @@ section .text
             mov rdi, err_dirc
             call putsln
             mov rax, 0
-            jmp game_1
+            jmp game_001
 
         .north:
             mov rdi, msg_nort
@@ -133,7 +135,7 @@ section .text
             mov rdi, msg_west
             call putsln
             ret
-            
+
         .south:
             mov rdi, msg_sout
             call putsln

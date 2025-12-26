@@ -1,6 +1,7 @@
 ; Utilities functions for use in other programs
 
 BITS 64
+DEFAULT REL
 CPU X64
 
 %define SYSREAD   0            ; System read call id
