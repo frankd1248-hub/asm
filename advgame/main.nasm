@@ -42,6 +42,7 @@ CPU X64
 section .data
     hp: db 100
     diff: db 0
+    heal: db 1
 
     err_nulinput: db "Error: NULL input.", 0
 
@@ -66,10 +67,15 @@ section .data
 
     msg_0002: db "You are in a nondescript dark room. Where do you go?", 0
     res_0002_1: db "You enter another dark room.", 0
-    res_0002_2: db "You find a healing potion!", 0
+    res_0002_2_v1: db "You find a healing potion!", 0
+    res_0002_2_v2: db "It's a dead end.", 0
     res_0002_3: db "You go back to the starting room.", 0
     res_0002_4: db "You enter another dark room.", 0
+
     pmt_0002_2: db "Do you 1 (use it) or 2 (leave it)? ", 0
+    err_0002_2: db "Invalid iniput.", 0
+    res_0002_2_1: db "You drank the potion.", 0
+    res_0002_2_2: db "You left the potion where it is.", 0
 
 section .text
     global _start
@@ -109,10 +115,7 @@ section .text
         call putsln
         mov rax, 0
         jmp .getinput
-
-        .done:
-        call endl
-        jmp exit
+        ret
 
         .nullinput:
         mov rdi, err_nulinput
@@ -153,6 +156,7 @@ section .text
             call putsln
             mov rax, 0
             jmp game_001
+            ret
 
         .north:
             mov rdi, msg_nort
@@ -175,6 +179,7 @@ section .text
             call putsln
             mov rdi, res_0001_3
             call putsln
+            call fight
             ret
 
         .south:
@@ -206,10 +211,94 @@ section .text
             call putsln
             mov rax, 0
             jmp game_002
+            ret
         
         .north:
-        .east:
-        .west:
-        .south:
+            mov rdi, msg_nort
+            call putsln
+            mov rdi, res_0002_1
+            call putsln
+            ret
 
+        .east:
+            cmp byte [heal], 1
+            je .pot
+            jne .nopot
+            ret
+
+            .nopot:
+                mov rdi, msg_east
+                call putsln
+                mov rdi, res_0002_2_v2
+                call putsln
+                jmp game_002
+                ret
+
+            .pot:
+                mov rdi, msg_east
+                call putsln
+                mov rdi, res_0002_2_v1
+                call putsln
+                mov rdi, pmt_0002_2
+                call puts
+                call getchar
+                mov bl, al
+                call endl
+                cmp bl, 49
+                je .use
+                cmp bl, 50
+                je .leav
+                jmp ._invalid
+                ret
+
+            ._invalid:
+                mov rdi, err_0002_2
+                call putsln
+                jmp .east
+                ret
+            
+            .use:
+                mov rdi, res_0002_2_1
+                call putsln
+                add byte [hp], 75
+                cmp byte [hp], 100
+                jg .set
+                jng .done
+
+                .set:
+                    mov byte [hp], 100
+                
+                .done:
+                    mov byte [heal], 0
+                
+                jmp game_002
+                ret
+
+            .leav:
+                mov rdi, res_0002_2_2
+                call putsln
+                jmp game_002
+                ret
+
+            ret
+
+        .west:
+            mov rdi, msg_west
+            call putsln
+            mov rdi, res_0002_3
+            call putsln
+            call game_001
+            ret
+
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            mov rdi, res_0002_4
+            call putsln
+            jmp game_002
+            ret
+
+        ret
+
+    fight:
         ret

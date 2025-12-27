@@ -25,8 +25,15 @@ CPU X64
 
 %define RET_SIGSEGV 139            ; Segmentation fault return value
 
+struc timespec
+    .tv_sec   resq 1
+    .tv_nsec  resq 1
+endstruc
+
 section .bss
     orig_termios resb 64
+    sleep_req resb timespec_size
+    sleep_rem resb timespec_size
 
 section .data
     clear_seq db 27, "[2J", 27, "[H"
@@ -54,6 +61,42 @@ section .text
         mov r10, 8
         syscall
         ret
+
+    sleep_ms:
+        ; Convert milliseconds → seconds + nanoseconds
+        mov     rax, rdi
+        xor     rdx, rdx
+        mov     rcx, 1000
+        div     rcx                 ; RAX = sec, RDX = ms remainder
+
+        mov     [sleep_req + timespec.tv_sec], rax
+
+        mov     rax, rdx
+        mov     rcx, 1_000_000
+        mul     rcx                 ; ms -> ns
+        mov     [sleep_req + timespec.tv_nsec], rax
+
+        .sleep_loop:
+            mov     rax, 35         ; SYS_nanosleep
+            lea     rdi, [sleep_req]
+            lea     rsi, [sleep_rem]
+            syscall
+
+            test    rax, rax
+            jns     .done           ; success
+
+            cmp     rax, -4         ; -EINTR
+            jne     .done           ; other error -> return
+
+            ; retry with remaining time
+            mov     rax, [sleep_rem + timespec.tv_sec]
+            mov     [sleep_req + timespec.tv_sec], rax
+            mov     rax, [sleep_rem + timespec.tv_nsec]
+            mov     [sleep_req + timespec.tv_nsec], rax
+            jmp     .sleep_loop
+
+        .done:
+            ret
 
     exit:
         mov rax, SYSEXIT           ; Prepare to call exit function
@@ -86,6 +129,8 @@ section .text
 
         add rsp, 1
         pop rbp                    ; Reset stack to state before call
+        mov rdi, 10
+        call sleep_ms
         ret
 
     endl:
