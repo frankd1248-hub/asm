@@ -1,4 +1,5 @@
 ; Text-based adventure game written in x86_64 NASM assembly
+; Developing this was...
 
 ; ABI CONVENTIONS SUMMARY
 ; caller-saved registers:
@@ -9,6 +10,8 @@
 ;    rdi -> rsi -> rdx -> rcx -> r8 -> r9
 ; return values:
 ;    rax
+
+; STACK ALIGNMENT SUMMARY
 ; RSP % 16 == 8 before call instruction
 ; RSP % 16 == 0 before syscall
 ; Linux enters _start with RSP % 16 == 0
@@ -44,6 +47,8 @@ section .data
     diff: db 0
     heal: db 1
 
+    ; Big-ass block of messages. I could probably make this whole thing better, but I really don't want to.
+
     err_nulinput: db "Error: NULL input.", 0
 
     pmt_dirc: db "1 (North), 2 (East), 3 (West), 4 (South): ", 0
@@ -53,7 +58,7 @@ section .data
     msg_west: db "You walk West.", 0
     msg_sout: db "You walk South.", 0
 
-    msg_0000: db "Welcome to the ASM Text Adventure Game!", 0
+    msg_0000: db "Welcome to the Assembly Text Adventure Game!", 0
     pmt_0000: db "Choose difficulty: 1 (Easy), 2 (Hard) ", 0
     err_0000: db "Invalid input.", 0
     res_0000_1: db "You chose easy difficulty.", 0
@@ -80,76 +85,81 @@ section .data
 section .text
     global _start
 
-    _start:
-        call init
-        sub rsp, 8
-        call pregame
-        call cls
-        mov rdi, msg_0001
-        call putsln
-        call game_001
+    _start:                                ; Main function
+        sub rsp, 8                         ; Align stack
+        call init                          ; Initialize terminal modes and other I/O things
+        call pregame                       ; Choosing difficulty, which affects fights
+        call cls                           ; Clear screen after
+        call game_001                      ; Game entry point (I could have named it better)
         call endl
-        call restore_terminal
-        add rsp, 8
-        jmp exit
+        call restore_terminal              ; The game is about to exit, restore original terminal mode
+        add rsp, 8                         ; Re-align stack
+        jmp exit                           ; Literally just a syscall
 
     pregame:
-        mov rdi, msg_0000
+        mov rdi, msg_0000                  ; Print first message
         call putsln
 
         .getinput:
-        mov rdi, pmt_0000
-        call puts
-        call getchar
-        mov bl, al
-        call endl
-        cmp bl, 0
-        je .nullinput
-        cmp bl, 49
-        je .Easy
-        cmp bl, 50
-        je .Hard
+            mov rdi, pmt_0000              ; Print prompt
+            call puts
+            call getchar
+            mov bl, al                     ; rax gets clobbered by endl, move to rbx for safety
+            call endl
+            cmp bl, 0                      ; Input is NULL, emit error message
+            je .nullinput
+            cmp bl, 49                     ; Input is 1, easy mode
+            je .Easy
+            cmp bl, 50                     ; Input is 2, hard mode
+            je .Hard
 
         .invalid:
-        mov rdi, err_0000
-        call putsln
-        mov rax, 0
-        jmp .getinput
-        ret
+            mov rdi, err_0000              ; Invalid input, emit error message
+            call putsln
+            mov rax, 0
+            jmp .getinput                  ; Get input again
+            ret
 
         .nullinput:
-        mov rdi, err_nulinput
-        call putsln
-        jmp .getinput
+            mov rdi, err_nulinput          ; NULL input, emit error message
+            call putsln
+            jmp .getinput                  ; Get input again
 
         .Easy:
-        mov byte [diff], 1
-        mov rdi, res_0000_1
-        call putsln
-        ret
+            mov byte [diff], 1             ; Set difficulty to 1
+            mov rdi, res_0000_1            ; Print a message
+            call putsln
+            jmp .done
 
         .Hard:
-        mov byte [diff], 2
-        mov rdi, res_0000_2
-        call putsln
-        ret
+            mov byte [diff], 2             ; Set difficulty to 2
+            mov rdi, res_0000_2            ; Print a message
+            call putsln
+            jmp .done
+
+        .done:
+            mov rdi, 1000                  ; Do a delay so that the player can read the message
+            call sleep_ms
+            ret
 
     game_001:
+        mov rdi, msg_0001                  ; Basements...
+        call putsln
 
         back:
-        mov rdi, pmt_dirc
-        call puts
-        call getchar
-        mov bl, al
-        call endl
-        cmp bl, 49
-        je .north
-        cmp bl, 50
-        je .east
-        cmp bl, 51
-        je .west
-        cmp bl, 52
-        je .south
+            mov rdi, pmt_dirc              ; Which direction?
+            call puts
+            call getchar
+            mov bl, al                     ; Save value from clobbering
+            call endl
+            cmp bl, 49
+            je .north                      ; Dead end
+            cmp bl, 50
+            je .east                       ; Room
+            cmp bl, 51
+            je .west                       ; Fight
+            cmp bl, 52
+            je .south                      ; Room
 
         .invalid:
             mov rdi, err_dirc

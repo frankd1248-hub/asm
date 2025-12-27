@@ -7,6 +7,7 @@ CPU X64
 %define SYSREAD   0                ; System read call id
 %define SYSWRITE  1                ; System write call id
 %define SYSIOCTL 16                ; System I/O control call id
+%define SYSNANOSLEEP 35            ; System sleep nanoseconds call id
 %define SYSEXIT  60                ; System exit call id
 
 %define STDIN     0                ; Standard input stream id
@@ -77,7 +78,7 @@ section .text
         mov     [sleep_req + timespec.tv_nsec], rax
 
         .sleep_loop:
-            mov     rax, 35         ; SYS_nanosleep
+            mov     rax, SYSNANOSLEEP
             lea     rdi, [sleep_req]
             lea     rsi, [sleep_rem]
             syscall
