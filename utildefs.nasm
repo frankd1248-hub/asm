@@ -1,5 +1,19 @@
 ; Utilities functions for use in other programs
 
+; List of functions:
+; init(void); initializes for other functions
+; sleep_ms(int -> rdi); Sleeps for some number of milliseconds
+; exit(void); Exits program via a syscall
+; cls(void); Clears terminal via ANSI escape codes
+; putchar(int -> rdi); Prints one character
+; puts(char* -> rdi); Prints a string
+; putsln(char* -> rdi) Prints a string followed by a newline
+; endl(void); Prints a newline character
+; getchar(void) -> int -> rax; Gets one character and temporarily sets terminal to raw mode
+;
+; All others are only for internal use.
+
+
 BITS 64
 DEFAULT REL
 CPU X64
