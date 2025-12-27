@@ -4,26 +4,26 @@ BITS 64
 DEFAULT REL
 CPU X64
 
-%define SYSREAD   0            ; System read call id
-%define SYSWRITE  1            ; System write call id
-%define SYSIOCTL 16            ; System I/O control call id
-%define SYSEXIT  60            ; System exit call id
+%define SYSREAD   0                ; System read call id
+%define SYSWRITE  1                ; System write call id
+%define SYSIOCTL 16                ; System I/O control call id
+%define SYSEXIT  60                ; System exit call id
 
-%define STDIN     0            ; Standard input stream id
-%define STDOUT    1            ; Standard output stream id
+%define STDIN     0                ; Standard input stream id
+%define STDOUT    1                ; Standard output stream id
 
-%define TCGETS      0x5401     ; Terminal get
-%define TCSETS      0x5402     ; Terminal set
+%define TCGETS      0x5401         ; Terminal get
+%define TCSETS      0x5402         ; Terminal set
 
-%define ICANON      0x0002     ; Canonical/raw terminal flag
-%define ECHO        0x0008     ; Echo on/off flag
+%define ICANON      0x0002         ; Canonical/raw terminal flag
+%define ECHO        0x0008         ; Echo on/off flag
 
-%define SIGSEGV  11            ; Segmentation fault signal
+%define SIGSEGV  11                ; Segmentation fault signal
 %define SA_RESTORER 0x04000000
 
 %define SYS_RT_SIGACTION 13
 
-%define RET_SIGSEGV 139        ; Segmentation fault return value
+%define RET_SIGSEGV 139            ; Segmentation fault return value
 
 section .bss
     orig_termios resb 64
@@ -61,10 +61,10 @@ section .text
         syscall                    ; Call
 
     cls:
-        mov eax, 1          ; sys_write
-        mov edi, 1          ; stdout
-        lea rsi, [clear_seq]
-        mov edx, clear_len
+        mov eax, 1                 ; sys_write
+        mov edi, 1                 ; stdout
+        lea rsi, [clear_seq]       ; ANSI escape characters to clear the screen and place the cursor on the corner
+        mov edx, clear_len         ; Length of sequence
         syscall
         ret
 
@@ -118,23 +118,23 @@ section .text
     
     getchar:
         push rbp
-        mov  rbp, rsp                ; Setup stack frame
-        sub  rsp, 128                ; Reserve 128b (8B) of storage
+        mov  rbp, rsp              ; Setup stack frame
+        sub  rsp, 128              ; Reserve 128b (8B) of storage
 
         push r12
         push r13
         push r14
 
-        lea r12, [orig_termios]      ; old terminal
-        lea r13, [rbp-68]            ; new terminal
-        lea r14, [rbp-1]             ; character input
+        lea r12, [orig_termios]    ; old terminal
+        lea r13, [rbp-68]          ; new terminal
+        lea r14, [rbp-1]           ; character input
 
         ; ioctl TCGETS, stores the current terminal config in r12
         mov rax, SYSIOCTL
         mov rdi, STDIN
         mov rsi, TCGETS
         mov rdx, r12
-        syscall                      ; ioctl(STDIN, TCGETS, &term_old)
+        syscall                    ; ioctl(STDIN, TCGETS, &term_old)
         test rax, rax
         js .fail
 
@@ -154,14 +154,14 @@ section .text
         mov rdi, STDIN
         mov rsi, TCSETS
         mov rdx, r13
-        syscall                       ; ioctl(STDIN, TCSETS, term_new)
+        syscall                    ; ioctl(STDIN, TCSETS, term_new)
 
         ; read char
         mov rax, SYSREAD
         mov rdi, STDIN
             mov rsi, r14
         mov rdx, 1
-        syscall                       ; read(STDIN, &char, 1)
+        syscall                    ; read(STDIN, &char, 1)
         cmp rax, 1
         jne .restore_fail
 
@@ -171,7 +171,7 @@ section .text
             mov rdi, STDIN
             mov rsi, TCSETS
             mov rdx, r12
-            syscall                   ; ioctl(STDIN, TCSETS, term_old)
+            syscall                ; ioctl(STDIN, TCSETS, term_old)
 
             mov al, byte [r14]
 
@@ -179,15 +179,15 @@ section .text
             pop r14
             pop r13
             pop r12
-            leave                     ; Reset stack
+            leave                  ; Reset stack
             ret
 
         .restore_fail:
-            xor al, al                ; Ensure return of 0 (NULL)
+            xor al, al             ; Ensure return of 0 (NULL)
             jmp .restore
 
         .fail:
-            xor al, al                ; Ditto
+            xor al, al             ; Ditto
             jmp .cleanup
 
 
@@ -196,19 +196,19 @@ section .text
         mov rdi, STDIN
         mov rsi, TCSETS
         lea rdx, [orig_termios]
-        syscall                       ; ioctl(STDIN, TCSETS, &term_old)
+        syscall                    ; ioctl(STDIN, TCSETS, &term_old)
 
     sigsegv_handler:
         mov rax, SYSIOCTL
         mov rdi, STDIN
         mov rsi, TCSETS
         lea rdx, [orig_termios]
-        syscall                       ; ioctl(STDIN, TCSETS, &term_old)
+        syscall                    ; ioctl(STDIN, TCSETS, &term_old)
 
         mov rax, SYSEXIT
         mov rdi, RET_SIGSEGV
-        syscall                       ; Exit with SIGSEGV return value
+        syscall                    ; Exit with SIGSEGV return value
 
     sigrestorer:
-        mov rax, 15                   ; rt_sigreturn
+        mov rax, 15                ; rt_sigreturn
         syscall

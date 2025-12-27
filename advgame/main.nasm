@@ -13,6 +13,26 @@
 ; RSP % 16 == 0 before syscall
 ; Linux enters _start with RSP % 16 == 0
 
+
+;  Map of dungeon #1:
+;
+;  |-----------|-----------|-----  ----|
+;  |    Gbl    |           |           |
+;  |           |Gbl  X             Heal|
+;  |           |           |           |
+;  |-----  ----|----  -----|-----  ----|
+;              |           |
+;                      Gold|
+;              |           |
+;              |-----------|
+;
+;
+;
+;
+;
+;
+
+
 BITS 64
 CPU X64
 
@@ -39,6 +59,17 @@ section .data
     res_0000_2: db "You chose hard difficulty.", 0
 
     msg_0001: db "You wake up in a dark basement. Which direction do you go?", 0
+    res_0001_1: db "It's a dead end.", 0
+    res_0001_2: db "You enter another, seemingly identical room.", 0
+    res_0001_3: db "You bump into a goblin, and he attacks!", 0
+    res_0001_4: db "You enter another, seemingly identical room.", 0
+
+    msg_0002: db "You are in a nondescript dark room. Where do you go?", 0
+    res_0002_1: db "You enter another dark room.", 0
+    res_0002_2: db "You find a healing potion!", 0
+    res_0002_3: db "You go back to the starting room.", 0
+    res_0002_4: db "You enter another dark room.", 0
+    pmt_0002_2: db "Do you 1 (use it) or 2 (leave it)? ", 0
 
 section .text
     global _start
@@ -48,6 +79,8 @@ section .text
         sub rsp, 8
         call pregame
         call cls
+        mov rdi, msg_0001
+        call putsln
         call game_001
         call endl
         call restore_terminal
@@ -99,8 +132,8 @@ section .text
         ret
 
     game_001:
-        mov rdi, msg_0001
-        call putsln
+
+        back:
         mov rdi, pmt_dirc
         call puts
         call getchar
@@ -124,20 +157,59 @@ section .text
         .north:
             mov rdi, msg_nort
             call putsln
+            mov rdi, res_0001_1
+            call putsln
+            jmp back
             ret
 
         .east:
             mov rdi, msg_east
             call putsln
+            mov rdi, res_0001_2
+            call putsln
+            call game_002
             ret
 
         .west:
             mov rdi, msg_west
+            call putsln
+            mov rdi, res_0001_3
             call putsln
             ret
 
         .south:
             mov rdi, msg_sout
             call putsln
+            mov rdi, res_0001_4
+            call putsln
             ret
         
+    game_002:
+        mov rdi, msg_0002
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+
+        .invalid:
+            mov rdi, err_dirc
+            call putsln
+            mov rax, 0
+            jmp game_002
+        
+        .north:
+        .east:
+        .west:
+        .south:
+
+        ret
