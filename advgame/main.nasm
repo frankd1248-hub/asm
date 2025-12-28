@@ -42,10 +42,15 @@ CPU X64
 %include "utildefs.nasm"
 %include "math.nasm"
 
+section .bss
+    strbuf resb 16
+
 section .data
     hp: db 100
     diff: db 0
     heal: db 1
+    enemy0: db 1
+    enemyhp: db 0
 
     ; Big-ass block of messages. I could probably make this whole thing better, but I really don't want to.
 
@@ -57,6 +62,21 @@ section .data
     msg_east: db "You walk East.", 0
     msg_west: db "You walk West.", 0
     msg_sout: db "You walk South.", 0
+
+    msg_fight_01_1: db "Your HP: ", 0
+    msg_fight_01_2: db ", Enemy HP: ", 0
+    msg_fight_02: db "What do you do?", 0
+    pmt_fight_02: db "1 (Attack), 2 (Block), 3 (Run)", 0
+    err_fight_02: db "You got a bit confused and whacked yourself in the face.", 0
+    res_fight_02_1_1: db "You dealt ", 0
+    res_fight_02_1_2: db " damage! current Enemy HP: ", 0
+    res_fight_02_2: db "You blocked the oncoming attack!", 0
+    res_fight_02_3_1: db "You failed to escape the battle.", 0
+    res_fight_02_3_2: db "You escape the battle.", 0
+    msg_fight_03_1: db "The enemy deals ", 0
+    msg_fight_03_2: db " damage!", 0
+    res_fight_01: db "You lost...", 0
+    res_fight_02: db "You won!", 0
 
     msg_0000: db "Welcome to the Assembly Text Adventure Game!", 0
     pmt_0000: db "Choose difficulty: 1 (Easy), 2 (Hard) ", 0
@@ -189,8 +209,11 @@ section .text
             call putsln
             mov rdi, res_0001_3
             call putsln
+            mov rdi, 1000
+            call sleep_ms
             call fight
-            ret
+            mov [enemy0], rax
+            jmp game_001
 
         .south:
             mov rdi, msg_sout
@@ -311,4 +334,125 @@ section .text
         ret
 
     fight:
-        ret
+        mov byte [enemyhp], 100
+        cmp byte [diff], 2
+        je .increase
+
+        .loop:
+            call cls
+            mov rdi, msg_fight_01_1
+            call puts
+            lea rdi, [strbuf]
+            mov al, [hp]
+            call utoa
+            lea rdi, [strbuf]
+            call puts
+            mov rdi, msg_fight_01_2
+            call puts
+            lea rdi, [strbuf]
+            mov al, [enemyhp]
+            call utoa
+            lea rdi, [strbuf]
+            call putsln
+
+            mov rdi, msg_fight_02
+            call putsln
+            mov rdi, pmt_fight_02
+            call puts
+            call getchar
+            mov bl, al
+            call endl
+            cmp bl, 49
+            je .attack
+            cmp bl, 50
+            je .block
+            cmp bl, 51
+            je .escape
+
+            mov rdi, err_fight_02
+            call putsln
+
+        .enemyturn:
+            mov rdi, 4
+            mov rsi, 15
+            call randrange
+            mov bl, al
+            sub [hp], bl
+            mov rdi, msg_fight_03_1
+            call puts
+            lea rdi, [strbuf]
+            mov al, bl
+            call utoa
+            lea rdi, [strbuf]
+            call puts
+            mov rdi, msg_fight_03_2
+            call putsln
+            mov rdi, 750
+            call sleep_ms
+
+        .after:
+
+            cmp byte [hp], 0
+            jng .loss
+            cmp byte [enemyhp], 0
+            jng .win
+            jmp .loop
+        
+        .loss:
+            mov rdi, res_fight_01
+            call putsln
+            jmp exit
+        
+        .win:
+            mov rdi, res_fight_02
+            call putsln
+            mov rax, 0
+            ret
+
+        .increase:
+            add byte [enemyhp], 100
+            jmp .loop
+
+        .attack:
+            mov rdi, 8
+            mov rsi, 23
+            call randrange
+            mov bl, al
+            sub [enemyhp], bl
+            mov rdi, res_fight_02_1_1
+            call puts
+            lea rdi, [strbuf]
+            mov al, bl
+            call utoa
+            lea rdi, [strbuf]
+            call puts
+            mov rdi, res_fight_02_1_2
+            call puts
+            lea rdi, [strbuf]
+            mov al, [enemyhp]
+            call utoa
+            lea rdi, [strbuf]
+            call putsln
+            jmp .enemyturn
+        
+        .block:
+            mov rdi, res_fight_02_2
+            call putsln
+            jmp .loop
+
+        .escape:
+            mov rdi, 1
+            mov rsi, 20
+            call randrange
+            cmp al, 15
+            je .success
+            mov rdi, res_fight_02_3_1
+            call putsln
+            jmp .enemyturn
+        
+        .success:
+            mov rdi, res_fight_02_3_2
+            call putsln
+            mov rax, 1
+            ret
+

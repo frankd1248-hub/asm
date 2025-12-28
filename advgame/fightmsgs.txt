@@ -1,0 +1,15 @@
+msg_fight_01_1: db "Your HP: ", 0
+    msg_fight_01_2: db ", Enemy HP: ", 0
+    msg_fight_02: db "What do you do?", 0
+    pmt_fight_02: db "1 (Attack), 2 (Block), 3 (Run)", 0
+    err_fight_02: db "You got a bit confused and whacked yourself in the face.", 0
+    res_fight_02_1_1: db "You dealt ", 0
+    res_fight_02_1_2: db " damage! current Enemy HP: ", 0
+    res_fight_02_2_1: db "You failed to block.", 0
+    res_fight_02_2_2: db "You blocked the oncoming attack!", 0
+    res_fight_02_3_1: db "You failed to escape the battle.", 0
+    res_fight_02_3_2: db "You escape the battle.", 0
+    msg_fight_03_1: db "The enemy deals ", 0
+    msg_fight_03_2: db " damage!", 0
+    res_fight_01: db "You lost...", 0
+    res_fight_02: db "You won!", 0

@@ -22,6 +22,7 @@ section .text
         mov     [state], rax
         ret
 
+    ; lwr -> rdi, upr -> rsi
     randrange:                         ; A few more operations to get a random number in a range
         push rbx
         push rbp
