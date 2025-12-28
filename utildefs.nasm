@@ -55,10 +55,10 @@ section .data
     clear_len equ $ - clear_seq
 
     sigaction:                     ; Linux sigaction struct
-        dq sigsegv_handler         ;
-        dq SA_RESTORER             ;
-        dq sigrestorer             ;
-        times 16 dq 0              ;
+        dq sigsegv_handler         ; void *sa_handler(int)
+        dq SA_RESTORER             ; ???
+        dq sigrestorer             ; void *sa_restorer(int)?
+        times 16 dq 0              ; sigset_t sa_mask
 
 section .text
 
@@ -144,8 +144,8 @@ section .text
 
         add rsp, 1
         pop rbp                    ; Reset stack to state before call
-        mov rdi, 10
-        call sleep_ms
+        mov rdi, 10                ; Adds a delay after each character, serves use in the puts function
+        call sleep_ms              ; This and the previous line can be optionally deleted
         ret
 
     endl:
@@ -181,7 +181,7 @@ section .text
         mov  rbp, rsp              ; Setup stack frame
         sub  rsp, 128              ; Reserve 128b (8B) of storage
 
-        push r12
+        push r12                   ; Preserve registers
         push r13
         push r14
 
@@ -236,7 +236,7 @@ section .text
             mov al, byte [r14]
 
         .cleanup:
-            pop r14
+            pop r14                ; Return previous values of registers
             pop r13
             pop r12
             leave                  ; Reset stack

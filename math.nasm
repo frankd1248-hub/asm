@@ -8,8 +8,8 @@ section .data
 
 section .text
 
-    rand:                              ; XOR-shift random number generator, deterministic
-        mov     rax, [state]
+    rand:                              ; XOR-shift random number generator, deterministic and fast
+        mov     rax, [state]           ; Key to the generator being deterministic
         mov     rcx, rax
         shl     rcx, 13
         xor     rax, rcx

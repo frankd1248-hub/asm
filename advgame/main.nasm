@@ -221,7 +221,7 @@ section .text
             call putsln
             mov rdi, res_0001_4
             call putsln                     
-            ret
+            ret                            ; Eventually there will be a function call here
         
     game_002:
         mov rdi, msg_0002
@@ -229,21 +229,21 @@ section .text
         mov rdi, pmt_dirc
         call puts
         call getchar
-        mov bl, al
+        mov bl, al                         ; Again, save input from clobbering
         call endl
         cmp bl, 49
-        je .north
+        je .north                          ; Room
         cmp bl, 50
-        je .east
+        je .east                           ; Healing
         cmp bl, 51
-        je .west
+        je .west                           ; Starting room
         cmp bl, 52
-        je .south
+        je .south                          ; Room
 
         .invalid:
             mov rdi, err_dirc
             call putsln
-            mov rax, 0
+            mov rax, 0                     ; WTF? I mean it works so I won't touch it
             jmp game_002
             ret
         
@@ -454,6 +454,6 @@ section .text
         .success:
             mov rdi, res_fight_02_3_2
             call putsln
-            mov rax, 1
+            mov rax, 1                  
             ret
 
