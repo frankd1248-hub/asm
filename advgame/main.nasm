@@ -182,18 +182,18 @@ section .text
             je .south                      ; Room
 
         .invalid:
-            mov rdi, err_dirc
+            mov rdi, err_dirc              ; Invalid input, emit error message
             call putsln
-            mov rax, 0
+            mov rax, 0                     ; ????? (I don't remember why I did this)
             jmp game_001
             ret
 
         .north:
-            mov rdi, msg_nort
+            mov rdi, msg_nort        
             call putsln
             mov rdi, res_0001_1
             call putsln
-            jmp back
+            jmp back                       ; Dead end --> reprompt
             ret
 
         .east:
@@ -201,7 +201,7 @@ section .text
             call putsln
             mov rdi, res_0001_2
             call putsln
-            call game_002
+            call game_002                  ; Moved into another room --> call function
             ret
 
         .west:
@@ -209,17 +209,18 @@ section .text
             call putsln
             mov rdi, res_0001_3
             call putsln
-            mov rdi, 1000
+            mov rdi, 1000                  ; Time for player to read message
             call sleep_ms
             call fight
-            mov [enemy0], rax
+            mov [enemy0], rax              ; Fight enemy. Here, rax holds a boolean return value
             jmp game_001
+            ret
 
         .south:
             mov rdi, msg_sout
             call putsln
             mov rdi, res_0001_4
-            call putsln
+            call putsln                     
             ret
         
     game_002:
