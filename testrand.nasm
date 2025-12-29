@@ -4,9 +4,6 @@ CPU X64
 %include "math.nasm"
 %include "utildefs.nasm"
 
-section .bss
-    strbuf resb 8
-
 section .text
     global _start
 

@@ -1,6 +1,6 @@
 ; Testing file capabilities
 
-%include "file.asm"
+%include "file.nasm"
 
 section .data
     path: db "helloworld.nasm", 0
