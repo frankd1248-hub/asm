@@ -1,3 +1,4 @@
+
 ; Text-based adventure game written in x86_64 NASM assembly
 ; Developing this was...
 
@@ -34,8 +35,8 @@
 BITS 64
 CPU X64
 
-%include "file.nasm"
-%include "math.nasm"
+%include "file.asm"
+%include "math.asm"
 
 section .data
     hp: db 100
@@ -434,6 +435,8 @@ section .text
         .block:
             mov rdi, res_fight_02_2
             call putsln
+            mov rdi, 1000
+            call sleep_ms
             jmp .heal
 
         .heal:

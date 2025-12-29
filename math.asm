@@ -3,7 +3,7 @@
 BITS 64
 CPU X64
 
-%include "file.nasm"
+%include "file.asm"
 
 section .bss
     statebuf resb 32
@@ -45,7 +45,7 @@ section .text
         ret
 
     savestate:
-        mov rax, [state]               
+        mov rax, [state]
         lea rdi, [statebuf]
         call utoa                      ; Get string for writing to file
         lea rdi, [statebuf]
@@ -92,7 +92,7 @@ section .text
             add     dl, '0'
             push    rdx                ; push digit
             inc     rcx                ; Increment digit count
-            test    rax, rax            
+            test    rax, rax
             jnz     .convert
 
         .write:
@@ -108,7 +108,7 @@ section .text
 
             pop     rbx
             ret
-    
+
     strto64:
         xor rax, rax        ; result = 0
         xor rcx, rcx        ; index
@@ -164,7 +164,7 @@ section .text
             add     dl, '0'
             push    rdx                ; push digit
             inc     rcx                ; Increment digit count
-            test    rax, rax            
+            test    rax, rax
             jnz     .convert
         .write:
             mov     rax, rcx           ; return length
@@ -187,7 +187,7 @@ section .text
             mov rdx, rax
             mov rsi, rdi
             lea rdi, [statepath]
-        
+
         ; Write said string to the file
         mov r15, rdx
         mov r13, rsi                   ; Save from clobbering by literally everything
@@ -210,7 +210,7 @@ section .text
 
         cmp rax, 0
         jl .close
-        
+
         .close:
             mov rax, SYSCLOSE
             mov rdi, r12
