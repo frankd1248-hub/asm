@@ -20,16 +20,21 @@
 
 ;  Map of dungeon #1:
 ;
-;  |-----------|-----------|-----  ----|
-;  |    Gbl    |           |           |
+;  |-----------|
+;  |    Exit   |
+;  |           |
+;  |     7     |
+;  |----  -----|-----------|-----------|
+;  |    Gbl    |     1     |     2     |
 ;  |           |Gbl  X             Heal|
-;  |           |           |           |
+;  |     5     |           |           |
 ;  |-----  ----|----  -----|-----  ----|
-;              |           |
-;                      Gold|
-;              |           |
-;              |-----------|
+;  |     6     |     3     |     4     |
+;  |Gbl                Gold|           |
+;  |    Heal   |    Heal   |    Gbl    |
+;  |-----------|-----------|-----------|
 ;
+;  (Far from implemented)
 
 
 BITS 64
@@ -37,63 +42,25 @@ CPU X64
 
 %include "file.nasm"
 %include "math.nasm"
+%include "advgame/messages.nasm"
 
 section .data
     hp: db 100
+    gold: dw 0
     diff: db 0
-    heal: db 1
-    enemy0: db 1
+
+    heal2: db 1
+    heal3: db 1
+    heal6: db 1
+
+    enemy1: db 1
+    enemy4: db 1
+    enemy5: db 1
+    enemy6: db 1
+
+    gold3: db 1
+
     enemyhp: db 0
-
-    ; Big-ass block of messages. I could probably make this whole thing better, but I really don't want to.
-
-    err_nulinput: db "Error: NULL input.", 0
-
-    pmt_dirc: db "1 (North), 2 (East), 3 (West), 4 (South): ", 0
-    err_dirc: db "Invalid direction.", 0
-    msg_nort: db "You walk North.", 0
-    msg_east: db "You walk East.", 0
-    msg_west: db "You walk West.", 0
-    msg_sout: db "You walk South.", 0
-
-    msg_fight_01_1: db "Your HP: ", 0
-    msg_fight_01_2: db ", Enemy HP: ", 0
-    msg_fight_02: db "What do you do?", 0
-    pmt_fight_02: db "1 (Attack), 2 (Block), 3 (Run)", 0
-    err_fight_02: db "You got a bit confused and whacked yourself in the face.", 0
-    res_fight_02_1_1: db "You dealt ", 0
-    res_fight_02_1_2: db " damage! current Enemy HP: ", 0
-    res_fight_02_2: db "You blocked the oncoming attack!", 0
-    res_fight_02_3_1: db "You failed to escape the battle.", 0
-    res_fight_02_3_2: db "You escape the battle.", 0
-    msg_fight_03_1: db "The enemy deals ", 0
-    msg_fight_03_2: db " damage!", 0
-    res_fight_01: db "You lost...", 0
-    res_fight_02: db "You won!", 0
-
-    msg_0000: db "Welcome to the Assembly Text Adventure Game!", 0
-    pmt_0000: db "Choose difficulty: 1 (Easy), 2 (Hard) ", 0
-    err_0000: db "Invalid input.", 0
-    res_0000_1: db "You chose easy difficulty.", 0
-    res_0000_2: db "You chose hard difficulty.", 0
-
-    msg_0001: db "You wake up in a dark basement. Which direction do you go?", 0
-    res_0001_1: db "It's a dead end.", 0
-    res_0001_2: db "You enter another, seemingly identical room.", 0
-    res_0001_3: db "You bump into a goblin, and he attacks!", 0
-    res_0001_4: db "You enter another, seemingly identical room.", 0
-
-    msg_0002: db "You are in a nondescript dark room. Where do you go?", 0
-    res_0002_1: db "You enter another dark room.", 0
-    res_0002_2_v1: db "You find a healing potion!", 0
-    res_0002_2_v2: db "It's a dead end.", 0
-    res_0002_3: db "You go back to the starting room.", 0
-    res_0002_4: db "You enter another dark room.", 0
-
-    pmt_0002_2: db "Do you 1 (use it) or 2 (leave it)? ", 0
-    err_0002_2: db "Invalid iniput.", 0
-    res_0002_2_1: db "You drank the potion.", 0
-    res_0002_2_2: db "You left the potion where it is.", 0
 
 section .text
     global _start
@@ -202,21 +169,30 @@ section .text
         .west:
             mov rdi, msg_west
             call putsln
-            mov rdi, res_0001_3
+            cmp byte [enemy1], 1
+            je .enemy
+            mov rdi, res_0001_3_v2
             call putsln
-            mov rdi, 1000                  ; Time for player to read message
-            call sleep_ms
-            call fight
-            mov [enemy0], rax              ; Fight enemy. Here, rax holds a boolean return value
             jmp game_001
             ret
+
+            .enemy:
+                mov rdi, res_0001_3_v1
+                call putsln
+                mov rdi, 1000              ; Time for player to read message
+                call sleep_ms
+                call fight
+                mov byte [enemy1], al      ; Fight enemy. Here, rax holds a boolean return value
+                jmp game_001
+                ret
 
         .south:
             mov rdi, msg_sout
             call putsln
             mov rdi, res_0001_4
             call putsln
-            ret                            ; Eventually there will be a function call here
+            call game_003                  ; Move into another room --> Call function
+            ret
 
     game_002:
         mov rdi, msg_0002
@@ -250,7 +226,7 @@ section .text
             ret                            ; Eventually there will be a function call here
 
         .east:
-            cmp byte [heal], 1             ; Only prompt the player if the potion is there
+            cmp byte [heal2], 1             ; Only prompt the player if the potion is there
             je .pot
             jne .nopot
             ret                            ; I don't actually think I need this but I'm too scared to remove it
@@ -268,7 +244,7 @@ section .text
                 call putsln
                 mov rdi, res_0002_2_v1
                 call putsln
-                mov rdi, pmt_0002_2        ; Prompt if player wants to use potion
+                mov rdi, pmt_pot           ; Prompt if player wants to use potion
                 call puts
                 call getchar
                 mov bl, al                 ; Agaaaaain, to save from clobbering
@@ -281,13 +257,13 @@ section .text
                 ret
 
             ._invalid:
-                mov rdi, err_0002_2        ; Invalid input, emit error message
+                mov rdi, err_pot           ; Invalid input, emit error message
                 call putsln
                 jmp .east
                 ret
 
             .use:
-                mov rdi, res_0002_2_1
+                mov rdi, res_pot_1
                 call putsln
                 add byte [hp], 75          ; Try to heal 75HP
                 cmp byte [hp], 100         ; Did I overshoot?
@@ -298,13 +274,13 @@ section .text
                     mov byte [hp], 100     ; I did overshoot.
 
                 .done:
-                    mov byte [heal], 0     ; Delete the potion
+                    mov byte [heal2], 0     ; Delete the potion
 
                 jmp game_002
                 ret
 
             .leav:
-                mov rdi, res_0002_2_2      ; Leave the potion there.
+                mov rdi, res_pot_2         ; Leave the potion there.
                 call putsln
                 jmp game_002
                 ret
@@ -326,6 +302,125 @@ section .text
             call putsln
             jmp game_002
             ret                            ; Eventually there will be a function call here
+
+        ret
+
+    game_003:
+        mov rdi, msg_0003
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+
+        .invalid:
+            mov rdi, err_dirc
+            call putsln
+            jmp game_003
+
+        .north:
+            mov rdi, msg_nort
+            call putsln
+            mov rdi, res_0003_1
+            call putsln
+            call game_001
+            ret
+
+        .east:
+            mov rdi, msg_east
+            call putsln
+            jmp .gold
+            jmp game_003
+            ret
+
+        .west:
+            mov rdi, msg_west
+            call putsln
+            mov rdi, res_0003_3
+            call putsln
+            ret
+
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            jmp .pot
+            jmp game_003
+            ret
+
+        .gold:
+            cmp byte [gold3], 1
+            jne .nogold
+            mov rdi, res_0003_2_v1
+            call putsln
+            add word [gold], 50
+            mov byte [gold3], 0
+            jmp game_003
+            ret
+
+        .nogold:
+            mov rdi, res_0003_2_v2
+            call putsln
+            jmp game_003
+            ret
+
+        .pot:
+            cmp byte [heal3], 1
+            jne .nopot
+            mov rdi, res_0003_4_v1
+            call putsln
+            mov rdi, pmt_pot
+            call puts
+            call getchar
+            mov bl, al
+            call endl
+            cmp bl, 49
+            je .use
+            cmp bl, 50
+            je .leav
+
+            ._invalid:
+                mov rdi, err_pot
+                call putsln
+                jmp .pot
+                ret
+
+            .use:
+                mov rdi, res_pot_1
+                call putsln
+                add byte [hp], 75          ; Try to heal 75HP
+                cmp byte [hp], 100         ; Did I overshoot?
+                jg .set
+                jng .done
+
+                .set:
+                    mov byte [hp], 100     ; I did overshoot.
+
+                .done:
+                    mov byte [heal2], 0     ; Delete the potion
+
+                jmp game_003
+                ret
+
+            .leav:
+                mov rdi, res_pot_2
+                call putsln
+                jmp game_003
+                ret
+
+        .nopot:
+            mov rdi, res_0003_4_v2
+            call putsln
+            jmp game_003
+            ret
 
         ret
 
