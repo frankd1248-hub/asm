@@ -183,7 +183,7 @@ section .text
             ret
 
         .north:
-            mov rdi, msg_nort        
+            mov rdi, msg_nort
             call putsln
             mov rdi, res_0001_1
             call putsln
@@ -214,9 +214,9 @@ section .text
             mov rdi, msg_sout
             call putsln
             mov rdi, res_0001_4
-            call putsln                     
+            call putsln
             ret                            ; Eventually there will be a function call here
-        
+
     game_002:
         mov rdi, msg_0002
         call putsln
@@ -240,7 +240,7 @@ section .text
             mov rax, 0                     ; WTF? I mean it works so I won't touch it
             jmp game_002
             ret
-        
+
         .north:
             mov rdi, msg_nort
             call putsln
@@ -284,7 +284,7 @@ section .text
                 call putsln
                 jmp .east
                 ret
-            
+
             .use:
                 mov rdi, res_0002_2_1
                 call putsln
@@ -295,10 +295,10 @@ section .text
 
                 .set:
                     mov byte [hp], 100     ; I did overshoot.
-                
+
                 .done:
                     mov byte [heal], 0     ; Delete the potion
-                
+
                 jmp game_002
                 ret
 
@@ -393,12 +393,12 @@ section .text
             cmp byte [enemyhp], 0          ; If enemy's hp is equal to or less than 0, the player wins
             jng .win
             jg  .loop                      ; Otherwise, do another round
-        
+
         .loss:
             mov rdi, res_fight_01
             call putsln
             jmp exit                       ; Exit the game, no redos.
-        
+
         .win:
             mov rdi, res_fight_02
             call putsln
@@ -430,7 +430,7 @@ section .text
             lea rdi, [strbuf]
             call putsln
             jmp .enemyturn
-        
+
         .block:
             mov rdi, res_fight_02_2
             call putsln
@@ -441,7 +441,7 @@ section .text
             cmp byte [hp], 100
             jg .set
             jmp .loop
-        
+
         .set:
             mov byte [hp], 100
             jmp .loop
@@ -455,10 +455,9 @@ section .text
             mov rdi, res_fight_02_3_1
             call putsln
             jmp .enemyturn
-        
+
         .success:
             mov rdi, res_fight_02_3_2
             call putsln
-            mov rax, 1                  
+            mov rax, 1
             ret
-
