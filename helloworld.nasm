@@ -22,14 +22,11 @@ section .data
 section .text
     global _start
 
-    %define SYSCALL_EXIT 60
-    %define SYSCALL_WRITE 1
-    %define SYSOUT 1
-
     _start:
         sub rsp, 8
         call print_message          ; Print message "Hello, world!"
         call endl
+        add rsp, 8
         jmp exit                    ; Exit program
 
     print_message:

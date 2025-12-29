@@ -252,20 +252,20 @@ section .text
             call putsln
             mov rdi, res_0002_1
             call putsln
-            ret
+            ret                            ; Eventually there will be a function call here
 
         .east:
-            cmp byte [heal], 1
+            cmp byte [heal], 1             ; Only prompt the player if the potion is there
             je .pot
             jne .nopot
-            ret
+            ret                            ; I don't actually think I need this but I'm too scared to remove it
 
             .nopot:
                 mov rdi, msg_east
                 call putsln
                 mov rdi, res_0002_2_v2
                 call putsln
-                jmp game_002
+                jmp game_002               ; Potion already used, go back to room
                 ret
 
             .pot:
@@ -273,20 +273,20 @@ section .text
                 call putsln
                 mov rdi, res_0002_2_v1
                 call putsln
-                mov rdi, pmt_0002_2
+                mov rdi, pmt_0002_2        ; Prompt if player wants to use potion
                 call puts
                 call getchar
-                mov bl, al
+                mov bl, al                 ; Agaaaaain, to save from clobbering
                 call endl
-                cmp bl, 49
+                cmp bl, 49                 ; Heal the player and delete the potion
                 je .use
-                cmp bl, 50
+                cmp bl, 50                 ; Clean up and leave the potion
                 je .leav
                 jmp ._invalid
                 ret
 
             ._invalid:
-                mov rdi, err_0002_2
+                mov rdi, err_0002_2        ; Invalid input, emit error message
                 call putsln
                 jmp .east
                 ret
@@ -294,22 +294,22 @@ section .text
             .use:
                 mov rdi, res_0002_2_1
                 call putsln
-                add byte [hp], 75
-                cmp byte [hp], 100
+                add byte [hp], 75          ; Try to heal 75HP
+                cmp byte [hp], 100         ; Did I overshoot?
                 jg .set
                 jng .done
 
                 .set:
-                    mov byte [hp], 100
+                    mov byte [hp], 100     ; I did overshoot.
                 
                 .done:
-                    mov byte [heal], 0
+                    mov byte [heal], 0     ; Delete the potion
                 
                 jmp game_002
                 ret
 
             .leav:
-                mov rdi, res_0002_2_2
+                mov rdi, res_0002_2_2      ; Leave the potion there.
                 call putsln
                 jmp game_002
                 ret
@@ -321,7 +321,7 @@ section .text
             call putsln
             mov rdi, res_0002_3
             call putsln
-            call game_001
+            call game_001                  ; Go back to the starting room
             ret
 
         .south:
@@ -330,55 +330,57 @@ section .text
             mov rdi, res_0002_4
             call putsln
             jmp game_002
-            ret
+            ret                            ; Eventually there will be a function call here
 
         ret
 
-    fight:
-        mov byte [enemyhp], 100
-        cmp byte [diff], 2
+    fight:                                 ; Woah, this is long.
+        mov byte [enemyhp], 100            ; Set the enemy health
+        cmp byte [diff], 2                 ; If on hard mode, double enemy health.
         je .increase
 
         .loop:
-            call cls
+            call cls                       ; Very big block of messages.
             mov rdi, msg_fight_01_1
             call puts
             lea rdi, [strbuf]
-            mov al, [hp]
+            mov al, [hp]                   ; Prompt the player with their HP
             call utoa
             lea rdi, [strbuf]
             call puts
             mov rdi, msg_fight_01_2
             call puts
             lea rdi, [strbuf]
-            mov al, [enemyhp]
+            mov al, [enemyhp]              ; Prompt the player with enemy's HP
             call utoa
             lea rdi, [strbuf]
             call putsln
 
             mov rdi, msg_fight_02
             call putsln
-            mov rdi, pmt_fight_02
+            mov rdi, pmt_fight_02          ; Prompt the player for an action
             call puts
             call getchar
             mov bl, al
             call endl
             cmp bl, 49
-            je .attack
+            je .attack                     ; player wants to attack the enemy
             cmp bl, 50
-            je .block
+            je .block                      ; player wants to heal for 8HP
             cmp bl, 51
-            je .escape
+            je .escape                     ; player wants to attempt to escape the battle (leaves the enemy there)
 
-            mov rdi, err_fight_02
+            mov rdi, err_fight_02          ; Error message
             call putsln
+            mov rdi, 1000
+            call sleep_ms                  ; Go straight to the enemy's turn, no re-input.
 
         .enemyturn:
             mov rdi, 4
-            mov rsi, 15
-            call randrange
-            mov bl, al
-            sub [hp], bl
+            mov rsi, 13
+            call randrange                 ; Random number for enemy's attack damage
+            mov bl, al                     ; Aaaaaaagggggaaaaaiiiin, save it from clobbering.
+            sub [hp], bl                   ; Decrease player's health
             mov rdi, msg_fight_03_1
             call puts
             lea rdi, [strbuf]
@@ -389,25 +391,24 @@ section .text
             mov rdi, msg_fight_03_2
             call putsln
             mov rdi, 750
-            call sleep_ms
+            call sleep_ms                  ; Go straight to win detection
 
         .after:
-
-            cmp byte [hp], 0
+            cmp byte [hp], 0               ; If player's hp is equal to or less than 0, they lost
             jng .loss
-            cmp byte [enemyhp], 0
+            cmp byte [enemyhp], 0          ; If enemy's hp is equal to or less than 0, the player wins
             jng .win
-            jmp .loop
+            jmp .loop                      ; Otherwise, do another round
         
         .loss:
             mov rdi, res_fight_01
             call putsln
-            jmp exit
+            jmp exit                       ; Exit the game, no redos.
         
         .win:
             mov rdi, res_fight_02
             call putsln
-            mov rax, 0
+            mov rax, 0                     ; Remove the enemy
             ret
 
         .increase:
@@ -417,7 +418,7 @@ section .text
         .attack:
             mov rdi, 8
             mov rsi, 23
-            call randrange
+            call randrange                 ; Random number for player's attack damage
             mov bl, al
             sub [enemyhp], bl
             mov rdi, res_fight_02_1_1
@@ -439,6 +440,16 @@ section .text
         .block:
             mov rdi, res_fight_02_2
             call putsln
+            jmp .heal
+
+        .heal:
+            add byte [hp], 8
+            cmp byte [hp], 100
+            jg .set
+            jmp .loop
+        
+        .set:
+            mov byte [hp], 100
             jmp .loop
 
         .escape:

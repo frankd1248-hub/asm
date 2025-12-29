@@ -18,14 +18,22 @@ BITS 64
 DEFAULT REL
 CPU X64
 
-%define SYSREAD   0                ; System read call id
-%define SYSWRITE  1                ; System write call id
-%define SYSIOCTL 16                ; System I/O control call id
+%define SYSREAD       0            ; System read call id
+%define SYSWRITE      1            ; System write call id
+%define SYSOPEN       2            ; System open (file) call id
+%define SYSCLOSE      3            ; System close (file) call id
+%define SYSIOCTL     16            ; System I/O control call id
 %define SYSNANOSLEEP 35            ; System sleep nanoseconds call id
-%define SYSEXIT  60                ; System exit call id
+%define SYSEXIT      60            ; System exit call id
 
 %define STDIN     0                ; Standard input stream id
 %define STDOUT    1                ; Standard output stream id
+
+%define O_RDONLY   0               ; File: read only mode
+%define O_WRONLY   1               ; File: write only mode
+%define O_CREATE  64               ; File: create if nonexistent
+%define O_TRUNCT 512               ; File: truncate if existing
+%define WCTRUNCT 577               ; File: write mode, create if nonexistent, truncate if existing
 
 %define TCGETS      0x5401         ; Terminal get
 %define TCSETS      0x5402         ; Terminal set
@@ -144,7 +152,7 @@ section .text
 
         add rsp, 1
         pop rbp                    ; Reset stack to state before call
-        mov rdi, 10                ; Adds a delay after each character, serves use in the puts function
+        mov rdi, 5                 ; Adds a delay after each character, serves use in the puts function
         call sleep_ms              ; This and the previous line can be optionally deleted
         ret
 
