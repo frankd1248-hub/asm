@@ -13,6 +13,8 @@
 ;
 ; All others are only for internal use.
 
+%ifndef UTILDEFS_NASM_
+%define UTILDEFS_NASM_
 
 BITS 64
 DEFAULT REL
@@ -42,11 +44,14 @@ CPU X64
 %define ECHO        0x0008         ; Echo on/off flag
 
 %define SIGSEGV  11                ; Segmentation fault signal
+%define SIGINT    2                ; Terminal interrultion (Ctrl+C) signal
+
 %define SA_RESTORER 0x04000000
 
 %define SYS_RT_SIGACTION 13
 
 %define RET_SIGSEGV 139            ; Segmentation fault return value
+%define RET_SIGINT  130
 
 struc timespec
     .tv_sec   resq 1
@@ -59,10 +64,12 @@ section .bss
     sleep_rem resb timespec_size
 
 section .data
+    newl_ch db 0xA
+
     clear_seq db 27, "[2J", 27, "[H"
     clear_len equ $ - clear_seq
 
-    sigaction:                     ; Linux sigaction struct
+    sigaction_segv:                ; Linux sigaction struct
         dq sigsegv_handler         ; void *sa_handler(int)
         dq SA_RESTORER             ; ???
         dq sigrestorer             ; void *sa_restorer(int)?
@@ -70,7 +77,7 @@ section .data
 
 section .text
 
-    init:
+    initutil:
         mov rax, SYSIOCTL          ; Initialize original terminal to ensure we don't recover to garbage.
         mov rdi, STDIN
         mov rsi, TCGETS
@@ -79,7 +86,7 @@ section .text
 
         mov rax, SYS_RT_SIGACTION  ; Install segmentation fault handler
         mov rdi, SIGSEGV
-        lea rsi, [sigaction]
+        lea rsi, [sigaction_segv]
         xor rdx, rdx
         mov r10, 8
         syscall
@@ -291,3 +298,5 @@ section .text
     sigrestorer:
         mov rax, 15                ; rt_sigreturn
         syscall
+
+%endif

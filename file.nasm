@@ -1,5 +1,8 @@
 ; File handling functions (read/write)
 
+%ifndef FILE_NASM_
+%define FILE_NASM_
+
 %include "utildefs.nasm"
 
 section .bss
@@ -81,3 +84,5 @@ section .text
             pop r13
             pop r12
             ret
+
+%endif

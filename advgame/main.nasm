@@ -99,12 +99,14 @@ section .text
 
     _start:                                ; Main function
         sub rsp, 8                         ; Align stack
-        call init                          ; Initialize terminal modes and other I/O things
+        call initutil                      ; Initialize terminal modes and other I/O things
+        call initmath                      ; Install SIGINT handler
         call pregame                       ; Choosing difficulty, which affects fights
         call cls                           ; Clear screen after
         call game_001                      ; Game entry point (I could have named it better)
-        call endl
+        call endl                          ; End line for clean terminal next line
         call restore_terminal              ; The game is about to exit, restore original terminal mode
+        call savestate                     ; Save random state to ensure different random numbers next time
         add rsp, 8                         ; Re-align stack
         jmp exit                           ; Literally just a syscall
 
@@ -390,7 +392,7 @@ section .text
             jng .loss
             cmp byte [enemyhp], 0          ; If enemy's hp is equal to or less than 0, the player wins
             jng .win
-            jmp .loop                      ; Otherwise, do another round
+            jg  .loop                      ; Otherwise, do another round
         
         .loss:
             mov rdi, res_fight_01
