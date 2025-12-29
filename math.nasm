@@ -75,3 +75,35 @@ section .text
 
             pop     rbx
             ret
+    
+    strto64:
+        xor rax, rax        ; result = 0
+        xor rcx, rcx        ; index
+        mov rbx, 1          ; sign = +1
+
+        mov dl, [rdi]
+        cmp dl, '-'
+        jne .parse
+        mov rbx, -1
+        inc rdi
+
+        .parse:
+            mov dl, [rdi + rcx]
+            test dl, dl
+            jz .done
+
+            cmp dl, '0'
+            jb .done
+            cmp dl, '9'
+            ja .done
+
+            imul rax, rax, 10
+            sub dl, '0'
+            add rax, rdx
+
+            inc rcx
+            jmp .parse
+
+        .done:
+            imul rax, rbx
+            ret
