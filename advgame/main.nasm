@@ -29,21 +29,13 @@
 ;              |           |
 ;              |-----------|
 ;
-;
-;
-;
-;
-;
 
 
 BITS 64
 CPU X64
 
-%include "utildefs.nasm"
+%include "file.nasm"
 %include "math.nasm"
-
-section .bss
-    strbuf resb 16
 
 section .data
     hp: db 100

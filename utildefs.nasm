@@ -258,6 +258,17 @@ section .text
             xor al, al             ; Ditto
             jmp .cleanup
 
+    strlen:
+        xor rax, rax        ; length = 0
+
+        .loop:
+            cmp byte [rdi + rax], 0
+            je .done
+            inc rax
+            jmp .loop
+
+        .done:
+            ret
 
     restore_terminal:
         mov rax, SYSIOCTL
