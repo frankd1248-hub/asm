@@ -3,7 +3,7 @@
 BITS 64
 CPU X64
 
-%include "file.asm"
+%include "file.nasm"
 
 section .bss
     statebuf resb 32

@@ -35,8 +35,8 @@
 BITS 64
 CPU X64
 
-%include "file.asm"
-%include "math.asm"
+%include "file.nasm"
+%include "math.nasm"
 
 section .data
     hp: db 100

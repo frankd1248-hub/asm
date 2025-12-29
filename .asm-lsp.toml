@@ -1,20 +1,10 @@
-# Default configuration for all files in the project
 [default_config]
-version = "0.10.0"
+version = "0.10.1"
 assembler = "nasm"
-instruction_set = "x86"
+instruction_set = "x86/x86-64"
+
 [default_config.opts]
 compiler = "nasm"
 compile_flags_txt = []
 diagnostics = true
-default_diagnostics = true
-
-# Project-specific configuration to explicitly target .nasm files
-# The path field can use glob patterns
-[[project]]
-path = "**/*.nasm" # This pattern matches all .nasm files recursively
-assembler = "nasm"
-instruction_set = "x86"
-[project.opts]
-compiler = "nasm"
-diagnostics = true
+default_diagnostics = false

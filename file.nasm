@@ -3,7 +3,7 @@
 %ifndef FILE_NASM_
 %define FILE_NASM_
 
-%include "utildefs.asm"
+%include "utildefs.nasm"
 
 section .bss
     strbuf resb 2049                   ; Reserve 2KiB space for reading from file and null termination
