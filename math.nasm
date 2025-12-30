@@ -11,13 +11,21 @@ section .bss
 section .data
     state dq 10248926342346366829
 
-    statepath: db "~/Documents/rand.state", 0
+    loaderr: db "Could not load randstate.", 0
+
+    statepath: db "rand.state", 0
 
     sigaction_int:                 ; Linux sigaction struct
         dq sigint_handler          ; void *sa_handler(int)
         dq SA_RESTORER             ; ???
         dq sigrestorer             ; void *sa_restorer(int)?
         times 16 dq 0              ; sigset_t sa_mask
+
+    sigaction_term:
+        dq sigterm_handler
+        dq SA_RESTORER
+        dq sigrestorer
+        times 16 dq 0
 
 section .text
 
@@ -26,6 +34,14 @@ section .text
         mov rax, SYS_RT_SIGACTION
         mov rdi, SIGINT
         lea rsi, [sigaction_int]
+        xor rdx, rdx
+        mov r10, 8
+        syscall
+
+        ; Install SIGINT handler (Ctrl-C)
+        mov rax, SYS_RT_SIGACTION
+        mov rdi, SIGTERM
+        lea rsi, [sigaction_term]
         xor rdx, rdx
         mov r10, 8
         syscall
@@ -54,6 +70,28 @@ section .text
         mov rsi, rdi
         lea rdi, [statepath]
         call writefile
+
+    loadstate:
+        lea rdi, [statepath]
+        call path_exists
+        cmp al, 0
+        je .return
+
+        call readfile
+        cmp rax, -1
+        je .return
+        mov rdi, rax
+        call strto64
+        mov qword [state], rax
+        ret
+
+        .return:
+        mov rdi, [statepath]
+        mov rsi, 0644o
+        call create_file
+        mov rdi, loaderr
+        call putsln
+        ret
 
     ; lwr -> rdi, upr -> rsi
     randrange:                         ; A few more operations to get a random number in a range
@@ -226,3 +264,90 @@ section .text
             mov rax, SYSEXIT
             mov rdi, RET_SIGINT
             syscall
+
+    sigterm_handler:
+        ; Restore terminal state
+        mov rax, SYSIOCTL
+        mov rdi, STDIN
+        mov rsi, TCSETS
+        lea rdx, [orig_termios]
+        syscall
+
+        ; Save random state
+        ; ...
+        ; Oh no.
+
+        ; Convert state number to string
+        mov     rax, [state]
+        lea     rdi, [statebuf]
+        mov     rbx, 10
+        xor     rcx, rcx               ; digit count
+        .convert:
+            xor     rdx, rdx
+            div     rbx                ; RAX /= 10, RDX = remainder
+            add     dl, '0'
+            push    rdx                ; push digit
+            inc     rcx                ; Increment digit count
+            test    rax, rax
+            jnz     .convert
+        .write:
+            mov     rax, rcx           ; return length
+        .write_loop:
+            pop     rdx
+            mov     [rdi], dl
+            inc     rdi
+            loop    .write_loop
+            mov     byte [rdi], 0      ; null terminator
+
+        ; Count length of said string
+        lea rdi, [statebuf]
+        xor rax, rax                   ; length = 0
+        .loop:
+            cmp byte [rdi + rax], 0
+            je .done
+            inc rax
+            jmp .loop
+        .done:
+            mov rdx, rax
+            mov rsi, rdi
+            lea rdi, [statepath]
+
+        ; Write said string to the file
+        mov r15, rdx
+        mov r13, rsi                   ; Save from clobbering by literally everything
+
+        mov rax, SYSOPEN
+        mov rsi, WCTRUNCT
+        mov rdx, 0644o                 ; rw-r--r--
+        syscall                        ; open(rdi, WCTRUNCT, 0644)
+
+        cmp rax, 0                     ; Return value negative if error happened
+        jl .return
+
+        mov r12, rax                   ; Save file ID
+
+        mov rax, SYSWRITE
+        mov rdi, r12
+        mov rsi, r13
+        mov rdx, r15
+        syscall
+
+        cmp rax, 0
+        jl .close
+
+        .close:
+            mov rax, SYSCLOSE
+            mov rdi, r12
+            syscall                        ; close(r12)
+
+        .return:
+            mov rax, SYSWRITE
+            mov rdi, STDOUT
+            lea rsi, [newl_ch]
+            mov rdx, 1
+            syscall
+
+            mov rax, SYSEXIT
+            mov rdi, RET_SIGTERM
+            syscall
+

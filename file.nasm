@@ -19,7 +19,7 @@ section .text
         syscall                        ; open(rdi, O_RDONLY, 0)
 
         cmp rax, 0
-        jl .return
+        jl .cleanreturn
 
         mov r12, rax                   ; save fd
 
@@ -30,7 +30,7 @@ section .text
         syscall                        ; rax = bytes read
 
         cmp rax, 0
-        jl .close                      ; read error
+        jl .cleanup                     ; read error
 
         ; ---- null-terminate ----
         mov byte [strbuf + rax], 0
@@ -43,6 +43,19 @@ section .text
         lea rax, [strbuf]              ; return buffer pointer
 
         .return:
+            pop r12
+            ret
+
+        .cleanup:
+            mov rax, SYSCLOSE
+            mov rdi, r12
+            syscall
+            mov rax, -1
+            pop r12
+            ret
+
+        .cleanreturn:
+            mov rax, -1
             pop r12
             ret
 
@@ -84,5 +97,43 @@ section .text
             pop r13
             pop r12
             ret
+
+    path_exists:
+        ; Reserve stack space for struct stat
+        ; 144 bytes is safe for x86_64
+        sub rsp, 144
+
+        mov rax, 262            ; __NR_newfstatat
+        mov rsi, rdi            ; pathname
+        mov rdi, -100           ; AT_FDCWD
+        mov rdx, rsp            ; struct stat *
+        xor r10, r10            ; flags = 0
+        syscall
+
+        ; rax >= 0 → exists
+        ; rax <  0 → does not exist
+        xor eax, eax
+        test rax, rax
+        setns al                ; AL = 1 if rax >= 0
+
+        add rsp, 144
+        ret
+
+    create_file:
+        ; rdi = path
+        ; rsi = mode
+
+        mov rax, 257             ; __NR_openat
+        mov r10, rsi             ; mode
+        mov rsi, rdi             ; pathname
+        mov rdi, -100            ; AT_FDCWD
+        mov rdx, 0x41            ; O_CREAT | O_WRONLY
+                                ; 0x40 = O_CREAT
+                                ; 0x01 = O_WRONLY
+        syscall
+
+        ; rax = fd on success
+        ; rax = -errno on failure
+        ret
 
 %endif

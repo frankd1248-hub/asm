@@ -69,6 +69,7 @@ section .text
         sub rsp, 8                         ; Align stack
         call initutil                      ; Initialize terminal modes and other I/O things
         call initmath                      ; Install SIGINT handler
+        call loadstate                     ; Load random state from last game
         call pregame                       ; Choosing difficulty, which affects fights
         call cls                           ; Clear screen after
         call game_001                      ; Game entry point (I could have named it better)
@@ -421,6 +422,63 @@ section .text
             call putsln
             jmp game_003
             ret
+
+        ret
+
+    game_004:
+        mov rdi, msg_0004
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+        ret
+
+        .invalid:
+        mov rdi, err_dirc
+        call putsln
+        jmp game_004
+
+        .north:
+            mov rdi, msg_nort
+            call putsln
+            mov rdi, res_0004_1
+            call putsln
+            call game_002
+            ret
+
+        .east:
+            mov rdi, msg_east
+            call putsln
+            mov rdi, res_0004_2
+            call putsln
+            jmp game_004
+            ret
+
+        .west:
+            mov rdi, msg_west
+            call putsln
+            mov rdi, res_0004_3
+            call putsln
+            jmp game_004
+
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            mov rdi, res_0004_4
+            call putsln
+            call fight
+            mov byte [enemy4], al
+            jmp game_004
 
         ret
 

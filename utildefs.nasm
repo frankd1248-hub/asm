@@ -43,6 +43,7 @@ CPU X64
 %define ICANON      0x0002         ; Canonical/raw terminal flag
 %define ECHO        0x0008         ; Echo on/off flag
 
+%define SIGTERM  15                ; Similar to terminal interruption, systemd
 %define SIGSEGV  11                ; Segmentation fault signal
 %define SIGINT    2                ; Terminal interrultion (Ctrl+C) signal
 
@@ -50,6 +51,7 @@ CPU X64
 
 %define SYS_RT_SIGACTION 13
 
+%define RET_SIGTERM 143
 %define RET_SIGSEGV 139            ; Segmentation fault return value
 %define RET_SIGINT  130
 
