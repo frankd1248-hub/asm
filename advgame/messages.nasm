@@ -60,7 +60,8 @@ section .data
     res_0004_1: db "You enter the room you came from.", 0
     res_0004_2: db "It's a dead end.", 0
     res_0004_3: db "It's a dead end.", 0
-    res_0004_4: db "It's a dead end, but as you turn around... A goblin blocks your path!", 0
+    res_0004_4_v1: db "It's a dead end, but as you turn around... A goblin blocks your path!", 0
+    res_0004_4_v2: db "It's a dead end.", 0
 
     msg_0005: db "Guess where you are. Yep, a dark room!", 0
     res_0005_1_v1: db "There's a goblin staring at you.", 0
@@ -72,12 +73,9 @@ section .data
     msg_0006: db "It's dark in here, isn't it?", 0
     res_0006_1: db "You enter another dark room, but there seems to be a little bit of light to the North.", 0
     res_0006_2: db "You enter another dark room.", 0
-    res_0006_3: db "There's a goblin, and it attacks!", 0
+    res_0006_3_v1: db "There's a goblin, and it attacks!", 0
+    res_0006_3_v2: db "It's a dead end.", 0
     res_0006_4_v1: db "You find a healing potion!", 0
     res_0006_4_v2: db "It's a dead end.", 0
 
-    msg_0007: db "There's light to the North.", 0
-    res_0007_1: db "It's the exit! You made it!", 0
-    res_0007_2: db "It's a dead end.", 0
-    res_0007_3: db "It's a dead end.", 0
-    res_0007_4: db "You stepped back into darkness.", 0
+    msg_exit: db "It's the exit!", 0

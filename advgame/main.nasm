@@ -348,6 +348,7 @@ section .text
             call putsln
             mov rdi, res_0003_3
             call putsln
+            call game_006
             ret
 
         .south:
@@ -406,7 +407,7 @@ section .text
                     mov byte [hp], 100     ; I did overshoot.
 
                 .done:
-                    mov byte [heal2], 0     ; Delete the potion
+                    mov byte [heal3], 0     ; Delete the potion
 
                 jmp game_003
                 ret
@@ -474,12 +475,205 @@ section .text
         .south:
             mov rdi, msg_sout
             call putsln
-            mov rdi, res_0004_4
-            call putsln
-            call fight
-            mov byte [enemy4], al
-            jmp game_004
+            cmp byte [enemy4], 1
+            jne .noenemy
 
+            .enemy:
+                mov rdi, res_0004_4_v1
+                call putsln
+                call fight
+                mov byte [enemy4], al
+
+            .noenemy:
+                mov rdi, res_0004_4_v2
+                call putsln
+                jmp game_004
+
+        ret
+
+    game_005:
+        mov rdi, msg_0005
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+
+        .invalid:
+        mov rdi, err_dirc
+        call putsln
+        jmp game_005
+
+        .north:
+            mov rdi, msg_nort
+            call putsln
+            cmp byte [enemy5], 1
+            jne .noenemy
+
+            .enemy:
+                mov rdi, res_0005_1_v1
+                call putsln
+                call fight
+                mov byte [enemy5], al
+
+            .noenemy:
+                mov rdi, res_0005_1_v2
+                call putsln
+                call game_007
+                ret
+            
+        .east:
+            mov rdi, msg_east
+            call putsln
+            mov rdi, res_0005_2
+            call putsln
+            jmp game_005
+            ret
+
+        .west:
+            mov rdi, msg_west
+            call putsln
+            mov rdi, res_0005_3
+            call putsln
+            jmp game_005
+            ret
+
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            mov rdi, res_0005_4
+            call putsln
+            call game_006
+            ret
+
+        ret
+
+    game_006:
+        mov rdi, msg_0006
+        call putsln
+        mov rdi, pmt_dirc
+        call puts
+        call getchar
+        mov bl, al
+        call endl
+        cmp bl, 49
+        je .north
+        cmp bl, 50
+        je .east
+        cmp bl, 51
+        je .west
+        cmp bl, 52
+        je .south
+
+        .invalid:
+        mov rdi, err_dirc
+        call putsln
+        jmp game_006
+
+        .north:
+            mov rdi, msg_nort
+            call putsln
+            mov rdi, res_0006_1
+            call putsln
+            call game_005
+            ret
+
+        .east:
+            mov rdi, msg_east
+            call putsln
+            mov rdi, res_0006_2 
+            call putsln
+            call game_003
+            ret
+            
+        .west:
+            mov rdi, msg_west
+            call putsln
+            cmp byte [enemy6], 1
+            jne .noenemy
+
+            .enemy:
+                mov rdi, res_0006_3_v1
+                call putsln
+                call fight
+                mov byte [enemy6], al
+
+            .noenemy:
+                mov rdi, res_0006_3_v2
+                call putsln
+                jmp game_006
+                ret
+
+        .south:
+            mov rdi, msg_sout
+            call putsln
+            jmp .pot
+
+        .pot:
+            cmp byte [heal6], 1
+            jne .nopot
+            mov rdi, res_0006_4_v1
+            call putsln
+            mov rdi, pmt_pot
+            call puts
+            call getchar
+            mov bl, al
+            call endl
+            cmp bl, 49
+            je .use
+            cmp bl, 50
+            je .leav
+
+            ._invalid:
+                mov rdi, err_pot
+                call putsln
+                jmp .pot
+                ret
+
+            .use:
+                mov rdi, res_pot_1
+                call putsln
+                add byte [hp], 75          ; Try to heal 75HP
+                cmp byte [hp], 100         ; Did I overshoot?
+                jg .set
+                jng .done
+
+                .set:
+                    mov byte [hp], 100     ; I did overshoot.
+
+                .done:
+                    mov byte [heal6], 0     ; Delete the potion
+
+                jmp game_006
+                ret
+
+            .leav:
+                mov rdi, res_pot_2
+                call putsln
+                jmp game_006
+                ret
+
+        .nopot:
+            mov rdi, res_0006_4_v2
+            call putsln
+            jmp game_006
+            ret
+
+        ret
+
+    game_007:
+        call cls
+        mov rdi, msg_exit
+        call putsln
         ret
 
     fight:                                 ; Woah, this is long.

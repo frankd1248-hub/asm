@@ -128,8 +128,6 @@ section .text
         mov rsi, rdi             ; pathname
         mov rdi, -100            ; AT_FDCWD
         mov rdx, 0x41            ; O_CREAT | O_WRONLY
-                                ; 0x40 = O_CREAT
-                                ; 0x01 = O_WRONLY
         syscall
 
         ; rax = fd on success
