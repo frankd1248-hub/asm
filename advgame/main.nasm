@@ -34,7 +34,6 @@
 ;  |    Heal   |    Heal   |    Gbl    |
 ;  |-----------|-----------|-----------|
 ;
-;  (Far from implemented)
 
 
 BITS 64
